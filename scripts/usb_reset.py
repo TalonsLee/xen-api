@@ -215,7 +215,15 @@ def attach(path, domid, pid, reset_only):
     if reset_only:
         return
 
-    # set device file uid/gid
+    # get device file uid/gid
+    try:
+        stat = os.stat(path)
+        ids_info = "{} {}".format(stat.st_uid, stat.st_gid)
+    except OSError as e:
+        log.error("Failed to get stat of file {}: {}".format(path, str(e)))
+        exit(1)
+
+        # set device file uid/gid
     try:
         os.chown(path, pwd.getpwnam("qemu_base").pw_uid + domid,
                  grp.getgrnam("qemu_base").gr_gid + domid)
@@ -248,6 +256,9 @@ def attach(path, domid, pid, reset_only):
 
     # add device to cgroup allow list
     allow_device(path, domid)
+
+    # return the uid/gid to restore later
+    print ids_info
 
 
 def detach(path, domid, uid, gid):
